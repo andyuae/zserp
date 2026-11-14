@@ -12,20 +12,15 @@ const mode = ref<'login' | 'signup'>('login')
 const username = ref('')
 const password = ref('')
 const submitting = ref(false)
-const authDomain = (import.meta.env.VITE_AUTH_EMAIL_DOMAIN ?? '').trim().toLowerCase().replace(/^@/, '')
-const configState = computed(() => !supabaseConfigured ? '等待连接 Supabase' : authDomain ? '已配置 Supabase' : '等待配置登录域名')
+const configState = computed(() => supabaseConfigured ? '已配置 Supabase' : '等待连接 Supabase')
 
 function authEmail(value: string) {
-  return `${value.trim().toLowerCase()}@${authDomain}`
+  return `${value.trim().toLowerCase()}@accounts.zserp.invalid`
 }
 
 async function submit() {
   if (!supabase) {
     ElMessage.warning('还未配置 Supabase 项目。你提供项目连接信息后即可启用登录。')
-    return
-  }
-  if (!authDomain || !/^[a-z0-9.-]+\.[a-z]{2,}$/.test(authDomain)) {
-    ElMessage.warning('需要先在部署配置中设置公司实际拥有的登录域名。')
     return
   }
   const normalizedUsername = username.value.trim().toLowerCase()
@@ -104,7 +99,7 @@ async function submit() {
             <ArrowRight :size="17" />
           </button>
         </form>
-        <div class="connection-state" :class="{ connected: supabaseConfigured && authDomain }">
+        <div class="connection-state" :class="{ connected: supabaseConfigured }">
           <span class="state-dot"></span>
           <span>{{ configState }}</span>
         </div>
