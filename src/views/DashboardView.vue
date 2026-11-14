@@ -22,6 +22,7 @@ getCurrentInstance()?.appContext.app.use(VxeUI).use(VXETable)
 
 const router = useRouter()
 const auth = useAuthStore()
+const displayUsername = computed(() => String(auth.user?.user_metadata?.username ?? auth.user?.email ?? '团队预览'))
 const isMenuOpen = ref(false)
 const range = ref('最近 7 天')
 const selectedStore = ref('全部店铺')
@@ -113,8 +114,8 @@ async function exit() {
         <a class="nav-item muted" href="#settings"><Settings2 :size="17" /><span>系统设置</span></a>
         <div class="sidebar-help"><span class="help-icon"><CircleHelp :size="15" /></span><span>需要帮助？<small>查看使用指南</small></span><ChevronRight :size="14" /></div>
         <button class="user-profile" @click="auth.user ? exit() : router.push('/login')">
-          <span class="profile-avatar">{{ auth.user?.email?.[0]?.toUpperCase() ?? 'O' }}</span>
-          <span class="profile-info">{{ auth.user?.email ?? '团队预览' }}<small>{{ auth.user ? '已登录' : '预览模式' }}</small></span>
+          <span class="profile-avatar">{{ displayUsername[0]?.toUpperCase() ?? 'O' }}</span>
+          <span class="profile-info">{{ displayUsername }}<small>{{ auth.user ? '已登录' : '预览模式' }}</small></span>
           <LogOut v-if="auth.user" :size="15" /><MoreHorizontal v-else :size="17" />
         </button>
       </div>
@@ -129,7 +130,7 @@ async function exit() {
           <button class="icon-button" aria-label="快捷搜索"><Search :size="17" /></button>
           <button class="icon-button notification" aria-label="通知"><Bell :size="17" /><i></i></button>
           <span class="top-divider"></span>
-          <button class="account-button" @click="auth.user ? exit() : router.push('/login')"><span class="profile-avatar small">{{ auth.user?.email?.[0]?.toUpperCase() ?? 'O' }}</span><ChevronDown :size="13" /></button>
+          <button class="account-button" @click="auth.user ? exit() : router.push('/login')"><span class="profile-avatar small">{{ displayUsername[0]?.toUpperCase() ?? 'O' }}</span><ChevronDown :size="13" /></button>
         </div>
       </header>
       <PageTabs v-model="activeTab" :items="pageTabs">

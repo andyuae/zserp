@@ -9,27 +9,46 @@ import { useAuthStore } from '../stores/auth'
 const router = useRouter()
 const auth = useAuthStore()
 const mode = ref<'login' | 'signup'>('login')
-const email = ref('')
+const username = ref('')
 const password = ref('')
 const submitting = ref(false)
 const configState = computed(() => supabaseConfigured ? '已配置 Supabase' : '等待连接 Supabase')
+
+function authEmail(value: string) {
+  return `${value.trim().toLowerCase()}@accounts.zserp.invalid`
+}
 
 async function submit() {
   if (!supabase) {
     ElMessage.warning('还未配置 Supabase 项目。你提供项目连接信息后即可启用登录。')
     return
   }
+  const normalizedUsername = username.value.trim().toLowerCase()
+  if (!/^[a-z0-9][a-z0-9._-]{2,29}$/.test(normalizedUsername)) {
+    ElMessage.warning('用户名需为 3–30 位，以字母或数字开头，只能包含字母、数字、点、下划线和短横线。')
+    return
+  }
   submitting.value = true
   try {
     const result = mode.value === 'login'
-      ? await supabase.auth.signInWithPassword({ email: email.value, password: password.value })
-      : await supabase.auth.signUp({ email: email.value, password: password.value })
+      ? await supabase.auth.signInWithPassword({ email: authEmail(normalizedUsername), password: password.value })
+      : await supabase.auth.signUp({
+          email: authEmail(normalizedUsername),
+          password: password.value,
+          options: { data: { username: normalizedUsername } },
+        })
     if (result.error) throw result.error
     await auth.initialize()
     if (mode.value === 'signup' && !result.data.session) {
-      ElMessage.success('注册请求已提交，请查看邮箱完成验证。')
+      ElMessage.warning('注册成功，但 Supabase 仍要求邮箱验证。请在 Supabase Auth 设置中关闭邮箱确认后再注册。')
     } else {
-      await router.push('/workspace')
+      await auth.refreshProfile()
+      if (auth.profile?.is_active) {
+        await router.push('/workspace')
+      } else {
+        await auth.signOut()
+        ElMessage.info(mode.value === 'signup' ? '账号已创建，等待管理员启用后即可登录。' : '账号正在等待管理员启用。')
+      }
     }
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '登录失败，请检查账户信息。')
@@ -71,10 +90,10 @@ async function submit() {
           <button :class="{ active: mode === 'signup' }" @click="mode = 'signup'">注册</button>
         </div>
         <form class="login-form" @submit.prevent="submit">
-          <label for="email">邮箱</label>
-          <el-input id="email" v-model="email" type="email" autocomplete="email" placeholder="name@company.com" size="large" required />
+          <label for="username">用户名</label>
+          <el-input id="username" v-model="username" autocomplete="username" placeholder="请输入用户名" size="large" required minlength="3" maxlength="30" />
           <label for="password">密码</label>
-          <el-input id="password" v-model="password" type="password" autocomplete="current-password" placeholder="请输入密码" size="large" show-password required minlength="8" />
+          <el-input id="password" v-model="password" type="password" :autocomplete="mode === 'signup' ? 'new-password' : 'current-password'" placeholder="至少 8 位" size="large" show-password required minlength="8" />
           <button class="submit-button" type="submit" :disabled="submitting">
             {{ submitting ? '正在连接…' : mode === 'login' ? '登录工作台' : '注册账户' }}
             <ArrowRight :size="17" />

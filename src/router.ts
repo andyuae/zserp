@@ -18,6 +18,7 @@ router.beforeEach(async (to) => {
   const auth = useAuthStore()
   await auth.initialize()
   if (to.meta.requiresAuth && supabaseConfigured && !auth.user) return '/login'
+  if (to.meta.requiresAuth && auth.user && !auth.profile?.is_active) return '/login?pending=1'
   if (to.meta.requiresAuth && !supabaseConfigured) return '/login'
   return true
 })
